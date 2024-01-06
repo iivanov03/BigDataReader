@@ -1,6 +1,7 @@
 using System.Text;
 using BigDataReader.Data;
 using BigDataReader.Services.AccountService;
+using BigDataReader.Services.OrganizationService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -57,6 +58,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+
 
 var app = builder.Build();
 
