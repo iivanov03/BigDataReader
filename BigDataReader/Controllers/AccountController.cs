@@ -26,9 +26,9 @@ namespace BigDataReader.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> LoginAsync(string username, string password)
+        public async Task<IActionResult> LoginAsync(LoginModel model)
         {
-            var token = await _accountService.LoginAsync(username, password);
+            var token = await _accountService.LoginAsync(model.Username, model.Password);
             if (string.IsNullOrEmpty(token))
             {
                 return Unauthorized("Invalid credentials.");
