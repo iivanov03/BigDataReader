@@ -37,6 +37,38 @@ namespace BigDataReader.Services.OrganizationService
             return model;
         }
 
+        public async Task<IEnumerable<OrganizationModel>> GetOrganizationsWithMostEmployees()
+        {
+            return await _context.Organizations
+                    .Where(org => !org.IsDeleted)
+                    .OrderByDescending(org => org.NumberOfEmployees)
+                    .Take(3)
+                    .Select(org => new OrganizationModel
+                    {
+                        Name = org.Name,
+                        Website = org.Website,
+                        Country = org.Country.Name,
+                        Description = org.Description,
+                        Founded = org.Founded,
+                        Industry = org.Industry.Name,
+                        NumberOfEmployees = org.NumberOfEmployees,
+                    })
+                    .ToListAsync();
+        }
+
+        public async Task<IEnumerable<IndustryEmployeesModel>> AggregateEmployeeCountByIndustry()
+        {
+            return await _context.Organizations
+                    .Where(org => !org.IsDeleted)
+                    .GroupBy(org => org.Industry.Name)
+                    .Select(group => new IndustryEmployeesModel
+                    {
+                        Industry = group.Key,
+                        NumberOfEmployees = group.Sum(org => org.NumberOfEmployees),
+                    })
+                    .ToListAsync();
+        }
+
         public async Task<bool> UploadAsync(List<OrganizationModel> model)
         {
             await PreloadDataAsync();

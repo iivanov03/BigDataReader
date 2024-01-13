@@ -28,9 +28,15 @@ namespace BigDataReader.Services.AccountService
             }
 
             var user = new IdentityUser { UserName = username, Email = username };
-            var result = await _userManager.CreateAsync(user, password);
+            var createUserResult = await _userManager.CreateAsync(user, password);
 
-            return result.Succeeded;
+            if (!createUserResult.Succeeded)
+            {
+                return false;
+            }
+
+            var addToRoleResult = await _userManager.AddToRoleAsync(user, "User");
+            return addToRoleResult.Succeeded;
         }
 
         public async Task<string> LoginAsync(string username, string password)
@@ -38,22 +44,30 @@ namespace BigDataReader.Services.AccountService
             var user = await _userManager.FindByNameAsync(username);
             if (user != null && await _userManager.CheckPasswordAsync(user, password))
             {
-                return GenerateJwtToken(username);
+                return await GenerateJwtToken(username);
             }
 
             return null;
         }
 
-        private string GenerateJwtToken(string username)
+        private async Task<string> GenerateJwtToken(string username)
         {
+            var user = await _userManager.FindByNameAsync(username);
+            var roles = await _userManager.GetRolesAsync(user!);
+
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, username),
+                new Claim(ClaimTypes.Name, username),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             var token = new JwtSecurityToken(
                 claims: claims,

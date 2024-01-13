@@ -11,9 +11,32 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+var connectionString = builder.Configuration
+    .GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddIdentity<IdentityUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequiredLength = 2;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.SignIn.RequireConfirmedAccount = false;
+        options.SignIn.RequireConfirmedPhoneNumber = false;
+        options.SignIn.RequireConfirmedEmail = false;
+    })
+    .AddRoleManager<RoleManager<IdentityRole>>()
+    .AddDefaultTokenProviders()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -34,36 +57,26 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-var connectionString = builder.Configuration
-    .GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-
-builder.Services
-    .AddDefaultIdentity<IdentityUser>(options =>
-    {
-        options.SignIn.RequireConfirmedAccount = false;
-        options.SignIn.RequireConfirmedPhoneNumber = false;
-        options.SignIn.RequireConfirmedEmail = false;
-        options.Password.RequireDigit = false;
-        options.Password.RequiredLength = 2;
-        options.Password.RequireLowercase = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireNonAlphanumeric = false;
-    })
-    .AddDefaultTokenProviders()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 
-
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+
+    dbContext.Database.Migrate();
+
+    await dbContext.SeedData(roleManager, userManager);
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -87,7 +100,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseMiddleware<IpFilter>(new[] { "127.0.0.1" });
+app.UseMiddleware<IpFilter>("127.0.0.1");
 
 app.UseAuthentication();
 app.UseAuthorization();
