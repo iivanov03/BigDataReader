@@ -1,5 +1,6 @@
 using System.Text;
 using BigDataReader.Data;
+using BigDataReader.Middlewares;
 using BigDataReader.Services.AccountService;
 using BigDataReader.Services.OrganizationService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -85,6 +86,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseMiddleware<IpFilter>(new[] { "127.0.0.1" });
 
 app.UseAuthentication();
 app.UseAuthorization();
