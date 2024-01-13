@@ -22,7 +22,7 @@ namespace BigDataReader.Data.Entities
 
         public Industry Industry { get; set; }
         public int IndustryId { get; set; }
-
         public int NumberOfEmployees { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

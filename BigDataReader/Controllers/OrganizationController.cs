@@ -14,18 +14,17 @@ namespace BigDataReader.Controllers
             _organizationService = organizationService;
         }
 
-        // [HttpGet("{organizationId}")]
-        // public async Task<IActionResult> GetAsync(string organizationId)
-        // {
-        //     // var model = await _organizationService.GetAsync(organizationId);
+        [HttpGet("{organizationId}")]
+        public async Task<IActionResult> GetAsync(string organizationId)
+        {
+            var model = await _organizationService.GetAsync(organizationId);
+            if (model is null)
+            {
+                return NotFound();
+            }
 
-        //     // if (model is null)
-        //     // {
-        //     //     return NotFound();
-        //     // }
-
-        //     // return Ok(model);
-        // }
+            return Ok(model);
+        }
 
         [HttpPost("upload")]
         public async Task<IActionResult> UploadAsync([FromBody] List<OrganizationModel> data)
@@ -34,6 +33,18 @@ namespace BigDataReader.Controllers
             if (!succeeded)
             {
                 return BadRequest();
+            }
+
+            return Ok();
+        }
+
+        [HttpDelete("{organizationId}")]
+        public async Task<IActionResult> DeleteAsync(string organizationId)
+        {
+            var succeeded = await _organizationService.DeleteAsync(organizationId);
+            if (!succeeded)
+            {
+                return NotFound();
             }
 
             return Ok();
